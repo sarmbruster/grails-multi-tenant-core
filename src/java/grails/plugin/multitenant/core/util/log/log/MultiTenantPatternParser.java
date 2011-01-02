@@ -1,6 +1,7 @@
 package grails.plugin.multitenant.core.util.log.log;
 
 import grails.plugin.multitenant.core.util.TenantUtils;
+import org.apache.log4j.MDC;
 import org.apache.log4j.helpers.FormattingInfo;
 import org.apache.log4j.helpers.PatternConverter;
 import org.apache.log4j.helpers.PatternParser;
@@ -38,6 +39,8 @@ public class MultiTenantPatternParser extends PatternParser
     private class MultiTenantPatternConverter extends PatternConverter
     {
 
+        private static final String MDC_KEY = "VISITED_BY_MULTI_TENANT";
+
         MultiTenantPatternConverter(FormattingInfo formattingInfo)
         {
             super(formattingInfo);
@@ -45,9 +48,23 @@ public class MultiTenantPatternParser extends PatternParser
 
         public String convert(LoggingEvent event)
         {
-            final String rtn;
-            rtn = TenantUtils.getCurrentTenantName().toString();
-            return rtn;
+            boolean mdcAdded = false;
+            try {
+                Object mdcValue = MDC.get(MDC_KEY);
+                if (mdcValue==null) {
+                    MDC.put(MDC_KEY, Boolean.TRUE);
+                    mdcAdded = true;
+                    final String rtn;
+                    rtn = TenantUtils.getCurrentTenantName().toString();
+                    return rtn;
+                } else {
+                    return "n/a";
+                }
+            } finally {
+                if (mdcAdded) {
+                    MDC.remove(MDC_KEY);
+                }
+            }
         }
     }
 }
